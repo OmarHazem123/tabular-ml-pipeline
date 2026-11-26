@@ -185,8 +185,13 @@ TASKS: dict[str, Task] = {
         "Hold-out evaluation, promotion gate, results/metrics.json + results/report.md.",
         ((*UV_RUN, "ml-pipeline", "evaluate"),),
     ),
+    "figures": Task(
+        "Render the README figures (docs/figures/*.png) from results/metrics.json.",
+        ((*UV_RUN, "python", "scripts/render_figures.py"),),
+    ),
     "pipeline": Task(
-        "validate-data -> train -> evaluate.", depends=("validate-data", "train", "evaluate")
+        "validate-data -> train -> evaluate -> figures.",
+        depends=("validate-data", "train", "evaluate", "figures"),
     ),
     "serve": Task(
         "Run the API locally on :8000 (registry production model).",

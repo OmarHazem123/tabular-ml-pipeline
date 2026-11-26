@@ -33,6 +33,9 @@ dev = [
     "pytest-cov==7.1.0",
     "ruff==0.17.6",
 ]
+docs = [
+    "matplotlib==3.11.2",
+]
 train = [
     "optuna==5.1.0",
 ]
@@ -42,9 +45,10 @@ requires = ["uv_build==0.11.7"]
 build-backend = "uv_build"
 
 [tool.uv]
-# `train` (Optuna + SQLAlchemy/Alembic) is only needed to fit models. It is installed by
-# default for development but excluded from the serving image (`--no-default-groups`).
-default-groups = ["dev", "train"]
+# `train` (Optuna + SQLAlchemy/Alembic) is only needed to fit models, and `docs`
+# (matplotlib) only to render the README figures. Both are installed by default for
+# development but excluded from the serving image (`--no-default-groups`).
+default-groups = ["dev", "train", "docs"]
 
 [tool.uv.build-backend]
 module-name = "ml_pipeline"
@@ -101,7 +105,7 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 mypy_path = "src"
-files = ["src", "tests", "tasks.py"]
+files = ["src", "tests", "tasks.py", "scripts"]
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

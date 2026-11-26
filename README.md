@@ -11,7 +11,9 @@ CPU Docker image.
 
 The full pipeline was run on the pinned dataset (seed 42, 60/20/20 stratified split).
 Numbers are copied from [`results/report.md`](results/report.md) and
-[`results/metrics.json`](results/metrics.json).
+[`results/metrics.json`](results/metrics.json). The figures are rendered from that same
+`metrics.json` by [`scripts/render_figures.py`](scripts/render_figures.py)
+(`tasks.py figures`), so they need no data, models or retraining to reproduce.
 
 | Model | CV ROC-AUC | CV PR-AUC | Val PR-AUC | Val F1 | Test ROC-AUC | Test PR-AUC | Test F1 | Test Brier | Threshold |
 |---|---|---|---|---|---|---|---|---|---|
@@ -26,8 +28,12 @@ How to read the table:
 - **Test** columns are hold-out results, reported for every model. They played no
   part in selection.
 
+![Dot plot of the five cross-validation fold scores per model, with the CV mean plus or minus one standard deviation and the hold-out test score, for PR-AUC and ROC-AUC. XGBoost has the best mean CV PR-AUC (0.678), but all three models' fold spreads overlap.](docs/figures/model_comparison.png)
+
 On test, the champion flags 277 of 374 churners (recall 0.741, precision 0.559) at
 the F1-optimal threshold. The confusion matrix is TN 816 / FP 219 / FN 97 / TP 277.
+
+![Left: reliability diagram for XGBoost on the 1,409-customer test set (ECE 0.057, Brier 0.137), with dot area proportional to customers per bin and 95% Wilson intervals. Right: confusion matrix at threshold 0.262 with TN 816, FP 219, FN 97 and TP 277.](docs/figures/calibration_confusion.png)
 
 What the numbers say:
 - **Gradient boosting buys about +1 point of PR-AUC over a tuned linear model.** That
@@ -36,13 +42,19 @@ What the numbers say:
 - The gate still promoted XGBoost because its PR-AUC beat the baseline's on every
   split (CV, validation, and test) and it cleared every floor. Logistic regression is
   a defensible alternative if interpretability or latency matters more.
-- **All three models are well calibrated** after sigmoid calibration on the
-  validation split, with test Brier scores of 0.135–0.139. The reliability table is
-  in the report.
+- **Calibration is good overall but uneven for the champion.** After sigmoid
+  calibration on the validation split, all three models have test Brier scores of
+  0.135–0.139. Test ECE is 0.025 for logistic regression and LightGBM but 0.057 for
+  XGBoost. Its reliability diagram (above) under-predicts churn by about 10 points in
+  the 0.3–0.5 range and over-predicts by 15 points in the 0.5–0.6 bin, so its
+  mid-range probabilities are better read as a ranking than as exact rates. The full
+  reliability table is in the report.
 - **Top global drivers** (mean |SHAP|, log-odds): `Contract` 0.67, `tenure` 0.51,
   `InternetService` 0.25, `PaymentMethod` 0.17, `TechSupport` 0.17.
 - **The data has a hard ceiling.** 40 customers share every feature with another
   customer, and 18 of those groups carry opposite labels. No model can separate them.
+
+![Horizontal bar chart of mean absolute SHAP value per feature for XGBoost on the test set: Contract 0.673, tenure 0.513, InternetService 0.252, then PaymentMethod, TechSupport and OnlineSecurity at about 0.17.](docs/figures/shap_importance.png)
 
 ## Architecture
 
@@ -83,8 +95,8 @@ only forwards to it.
 
 ```bash
 uv sync --locked                       # Python 3.12 venv with exact pinned versions
-uv run python tasks.py check           # ruff + mypy --strict + LF check + 208 offline tests
-uv run python tasks.py pipeline        # validate-data -> train (~80 s) -> evaluate
+uv run python tasks.py check           # ruff + mypy --strict + LF check + 210 offline tests
+uv run python tasks.py pipeline        # validate-data -> train (~80 s) -> evaluate -> figures
 uv run python tasks.py serve           # API on http://127.0.0.1:8000 (docs at /docs)
 ```
 
@@ -105,7 +117,9 @@ uv run python tasks.py docker-run      # serve on :8000
 | `eol` | Fail if any text file contains a CR byte |
 | `test` / `test-network` / `coverage` | Offline suite / real-dataset test / coverage report |
 | `check` | `lint` → `typecheck` → `eol` → `test` |
-| `validate-data` / `train` / `evaluate` / `pipeline` | Pipeline stages, or all three in order |
+| `validate-data` / `train` / `evaluate` | Pipeline stages |
+| `figures` | Render the README figures in `docs/figures/` from `results/metrics.json` |
+| `pipeline` | All three stages, then `figures` |
 | `serve` | Local API from the registry's production model |
 | `export-model` | Hash-verified copy of the production model to `build/model` |
 | `docker-build` / `docker-run` / `docker-smoke` | Build, run, or smoke-test the image |
@@ -154,6 +168,11 @@ A real `POST /predict` response from the production model:
   "latency_ms": 146.8
 }
 ```
+
+The same reason codes for three hold-out customers from the evaluation report: the
+highest-risk customer, the lowest-risk customer, and the one closest to the threshold.
+
+![SHAP reason codes for three test customers. Highest risk (p = 0.868): tenure 1 month and a month-to-month contract raise risk. Lowest risk (p = 0.067): a two-year contract and 71 months of tenure lower it. Closest to the threshold (p = 0.262): short tenure raises risk and DSL internet lowers it; predicted churn, but the customer stayed.](docs/figures/reason_codes.png)
 
 - **Reason codes** are SHAP values of the model's log-odds score. One-hot columns are
   summed back into their source feature (`Contract`, not `Contract__month_to_month`),
@@ -292,7 +311,8 @@ Re-running `evaluate` on an already decided run reuses the recorded decision.
   single writer; a team setup would move to MLflow or a database-backed registry.
 - **Lean image (742 MB, mostly scikit-learn, SciPy, LightGBM, XGBoost and SHAP):**
   - `xgboost-cpu` avoids about 200 MB of CUDA/NCCL dependencies.
-  - Optuna lives in a `train` dependency group that is excluded from the image.
+  - Optuna (the `train` dependency group) and matplotlib (the `docs` group) are
+    excluded from the image.
   - Base images are pinned by tag **and** digest.
   - The container runs as a non-root user with a `HEALTHCHECK` on `/health`.
 
@@ -300,13 +320,17 @@ Re-running `evaluate` on an already decided run reuses the recorded decision.
 
 - Exact `==` pins in `pyproject.toml` plus `uv.lock`, Python 3.12.
 - `ruff` (including bandit rules) and `mypy --strict` with the pydantic plugin across
-  source, tests, and the task runner.
+  source, tests, scripts, and the task runner.
 - **LF everywhere:**
   - every report, registry file, and prediction file is written by
     `io_utils.atomic_write_*` (temp file, `fsync`, `os.replace`, `newline="\n"`);
   - `.gitattributes` sets `eol=lf`;
   - `tasks.py eol` fails the build on any CR byte.
-- 209 tests: 208 offline (on schema-faithful synthetic data, including a full
+- **Deterministic figures:** the README images are rendered with a fixed style, the
+  bundled DejaVu Sans font, a fixed size and DPI, and no timestamp metadata, then
+  written atomically. A test fails if a committed figure no longer matches
+  `results/metrics.json`.
+- 211 tests: 210 offline (on schema-faithful synthetic data, including a full
   train → evaluate → promote → serve run in about 30 s) and 1 that uses the real
   downloaded dataset.
 
@@ -327,9 +351,12 @@ src/ml_pipeline/
   api.py         FastAPI app factory
   cli.py         typer CLI: validate-data, train, evaluate, serve, predict, export-model
   io_utils.py    atomic LF writes, canonical JSON, hashing
-tests/           leakage, validation, features, pipeline, registry, API, CLI, config, I/O
+tests/           leakage, validation, features, pipeline, registry, API, CLI, config, I/O,
+                 figures
+scripts/         render_figures.py: README figures from results/metrics.json (matplotlib)
 examples/        request bodies for curl and ml-pipeline predict
 results/         committed reports: data_validation.json, metrics.json, report.md
+docs/figures/    committed README figures (PNG)
 ```
 
 ## License
