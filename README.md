@@ -150,7 +150,7 @@ A real `POST /predict` response from the production model:
     {"feature": "InternetService", "value": "Fiber optic", "contribution": 0.238089, "direction": "increases_risk"}
   ],
   "warnings": [],
-  "model_id": "20261126T010420Z-37ac9766-f2af-xgboost",
+  "model_id": "20261126T012827Z-37ac9766-8c8c-xgboost",
   "latency_ms": 146.8
 }
 ```
