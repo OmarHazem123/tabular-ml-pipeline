@@ -1,0 +1,10 @@
+# Store and check out every text file with LF endings on every OS
+# (overrides a global core.autocrlf=true on Windows).
+* text=auto eol=lf
+
+# Binary artifacts: never normalise, never diff.
+*.joblib binary
+*.pkl binary
+*.parquet binary
+*.png binary
+*.jpg binary

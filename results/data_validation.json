@@ -1,0 +1,287 @@
+{
+  "config_fingerprint": "2bcebd3e6829014deabe3adfdac96f51604da8ba3101b053e58633950385e20d",
+  "dataset": {
+    "path": "data/raw/telco_customer_churn.csv",
+    "pinned_sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91",
+    "sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91",
+    "url": "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/1fd6fd70906479be1712e64cfc0ea89f58466629/data/Telco-Customer-Churn.csv",
+    "verified": true
+  },
+  "passed": true,
+  "quality": {
+    "columns": [
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 7043,
+        "name": "customerID",
+        "role": "id"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "gender",
+        "role": "categorical"
+      },
+      {
+        "dtype": "float64",
+        "max": 1.0,
+        "mean": 0.1621468124378816,
+        "min": 0.0,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "SeniorCitizen",
+        "role": "binary"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "Partner",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "Dependents",
+        "role": "categorical"
+      },
+      {
+        "dtype": "float64",
+        "max": 72.0,
+        "mean": 32.37114865824223,
+        "min": 0.0,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 73,
+        "name": "tenure",
+        "role": "numeric"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "PhoneService",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "MultipleLines",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "InternetService",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "OnlineSecurity",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "OnlineBackup",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "DeviceProtection",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "TechSupport",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "StreamingTV",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "StreamingMovies",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 3,
+        "name": "Contract",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "PaperlessBilling",
+        "role": "categorical"
+      },
+      {
+        "dtype": "str",
+        "max": null,
+        "mean": null,
+        "min": null,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 4,
+        "name": "PaymentMethod",
+        "role": "categorical"
+      },
+      {
+        "dtype": "float64",
+        "max": 118.75,
+        "mean": 64.76169246059918,
+        "min": 18.25,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 1585,
+        "name": "MonthlyCharges",
+        "role": "numeric"
+      },
+      {
+        "dtype": "float64",
+        "max": 8684.8,
+        "mean": 2279.7343035638223,
+        "min": 0.0,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 6531,
+        "name": "TotalCharges",
+        "role": "numeric"
+      },
+      {
+        "dtype": "int64",
+        "max": 1.0,
+        "mean": 0.2653698707936959,
+        "min": 0.0,
+        "missing_count": 0,
+        "missing_fraction": 0.0,
+        "n_unique": 2,
+        "name": "Churn",
+        "role": "target"
+      }
+    ],
+    "conflicting_duplicate_count": 18,
+    "content_sha256": "10b58d7182386c268f711b1ca610de101bdbfc49a7698e358b173df4f7ac4705",
+    "duplicate_feature_row_count": 40,
+    "duplicate_id_count": 0,
+    "issues": [
+      {
+        "check": "duplicate_feature_rows",
+        "column": null,
+        "count": 40,
+        "message": "40 row(s) (0.57%) duplicate another row's features (limit 1.00%); 18 group(s) have conflicting labels",
+        "severity": "warning"
+      }
+    ],
+    "n_columns": 21,
+    "n_rows": 7043,
+    "positive_count": 1869,
+    "positive_rate": 0.2653698707936959,
+    "rule_applications": {
+      "total_charges_zero_for_zero_tenure": 11
+    }
+  },
+  "seed": 42,
+  "splits": {
+    "test": {
+      "ids_sha256": "51e56c56eeb7fef1165707ccab919730a09a70662f6d6a128992b1f09184d70d",
+      "n_rows": 1409,
+      "positive_count": 374,
+      "positive_rate": 0.2654364797728886
+    },
+    "train": {
+      "ids_sha256": "41f663c388df453f256525bafed2bb7c6aa108e1003fd35e8e389c41be555e7b",
+      "n_rows": 4225,
+      "positive_count": 1121,
+      "positive_rate": 0.26532544378698225
+    },
+    "val": {
+      "ids_sha256": "a24757280cf26fd2dc1ef425a7f2a7e12c1a3877c6c1878b6245fe86e722fb7a",
+      "n_rows": 1409,
+      "positive_count": 374,
+      "positive_rate": 0.2654364797728886
+    }
+  }
+}

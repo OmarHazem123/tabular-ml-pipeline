@@ -1,0 +1,35 @@
+# Agent / local tooling
+.claude/
+
+# Virtual environment
+.venv/
+
+# Python build & bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tool caches & coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Pipeline outputs (models, registry) and raw data caches
+artifacts/
+data/raw/
+data/cache/
+
+# Temp files left behind if a process is killed mid atomic-write
+.*.tmp
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
