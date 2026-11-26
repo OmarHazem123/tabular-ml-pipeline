@@ -8,13 +8,26 @@ behave realistically.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from pathlib import Path
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import pytest
 
-from ml_pipeline.config import PipelineConfig
+from ml_pipeline.config import (
+    FloatParam,
+    IntParam,
+    ModelSpec,
+    PathsConfig,
+    PipelineConfig,
+    PromotionConfig,
+    TrainingConfig,
+)
 from ml_pipeline.data import DataSplits, PreparedDataset, prepare_dataset, split_dataset
+from ml_pipeline.evaluate import EvaluationReport, run_evaluation
+from ml_pipeline.train import TrainingRun, run_training
 
 YES_NO = ["No", "Yes"]
 RAW_COLUMNS = [
@@ -134,3 +147,89 @@ def prepared(_raw_frame_session: pd.DataFrame, config: PipelineConfig) -> Prepar
 @pytest.fixture(scope="session")
 def splits(prepared: PreparedDataset, config: PipelineConfig) -> DataSplits:
     return split_dataset(prepared, config)
+
+
+# ---------------------------------------------------------------------------
+# End-to-end training fixture (shared by pipeline, API and CLI tests)
+# ---------------------------------------------------------------------------
+def tiny_training_config(base: Path) -> PipelineConfig:
+    """Same protocol as production, shrunk to seconds: 2 trials, 3 folds, small trees."""
+    models = (
+        ModelSpec(
+            name="logistic_regression",
+            is_baseline=True,
+            n_trials=2,
+            fixed_params={"max_iter": 2000},
+            search_space={"C": FloatParam(low=0.05, high=5.0, log=True)},
+        ),
+        ModelSpec(
+            name="lightgbm",
+            n_trials=2,
+            fixed_params={
+                "objective": "binary",
+                "deterministic": True,
+                "force_row_wise": True,
+                "n_jobs": 1,
+                "verbose": -1,
+            },
+            search_space={
+                "n_estimators": IntParam(low=20, high=60),
+                "num_leaves": IntParam(low=4, high=16),
+            },
+        ),
+        ModelSpec(
+            name="xgboost",
+            n_trials=2,
+            fixed_params={"tree_method": "hist", "n_jobs": 1, "eval_metric": "logloss"},
+            search_space={
+                "n_estimators": IntParam(low=20, high=60),
+                "max_depth": IntParam(low=2, high=4),
+            },
+        ),
+    )
+    return PipelineConfig(
+        training=TrainingConfig(
+            models=models, cv_folds=3, calibration_folds=3, n_jobs=1, shap_background_size=50
+        ),
+        promotion=PromotionConfig(min_roc_auc=0.5, min_pr_auc=0.3, min_f1=0.3, max_brier=0.25),
+        paths=PathsConfig(
+            raw_data_dir=base / "raw",
+            artifacts_dir=base / "artifacts",
+            runs_dir=base / "runs",
+            registry_dir=base / "registry",
+            results_dir=base / "results",
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class TrainedPipeline:
+    config: PipelineConfig
+    data_path: Path
+    run: TrainingRun
+    run_dir: Path
+    report: EvaluationReport
+
+
+@pytest.fixture(scope="session")
+def synthetic_csv(
+    tmp_path_factory: pytest.TempPathFactory, _raw_frame_session: pd.DataFrame
+) -> Path:
+    path = tmp_path_factory.mktemp("data") / "synthetic.csv"
+    _raw_frame_session.to_csv(path, index=False, lineterminator="\n")
+    return path
+
+
+@pytest.fixture(scope="session")
+def trained(tmp_path_factory: pytest.TempPathFactory, synthetic_csv: Path) -> TrainedPipeline:
+    """validate -> train -> evaluate (+ promote) once per session on synthetic data."""
+    config = tiny_training_config(tmp_path_factory.mktemp("pipeline"))
+    run = run_training(config, data_path=synthetic_csv)
+    report = run_evaluation(config, data_path=synthetic_csv)
+    return TrainedPipeline(
+        config=config,
+        data_path=synthetic_csv,
+        run=run,
+        run_dir=config.paths.runs_dir / run.run_id,
+        report=report,
+    )

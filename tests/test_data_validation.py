@@ -184,6 +184,28 @@ class TestSchemaViolations:
         raw_frame.loc[0, "Churn"] = ""
         expect_error(raw_frame, config, "missing_target", "Churn")
 
+    @pytest.mark.parametrize(
+        ("column", "value", "implicated"),
+        [
+            ("MultipleLines", "No phone service", "MultipleLines"),
+            ("TechSupport", "No internet service", "TechSupport"),
+        ],
+    )
+    def test_cross_field_inconsistency(
+        self,
+        raw_frame: pd.DataFrame,
+        config: PipelineConfig,
+        column: str,
+        value: str,
+        implicated: str,
+    ) -> None:
+        row = raw_frame.index[
+            (raw_frame["PhoneService"] == "Yes") & (raw_frame["InternetService"] != "No")
+        ][0]
+        raw_frame.loc[row, column] = value
+        message = expect_error(raw_frame, config, "inconsistent_values", implicated)
+        assert "must coincide with" in message
+
     def test_blank_id(self, raw_frame: pd.DataFrame, config: PipelineConfig) -> None:
         raw_frame.loc[0, "customerID"] = "  "
         expect_error(raw_frame, config, "missing_id", "customerID")

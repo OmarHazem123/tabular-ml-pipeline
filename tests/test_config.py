@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from ml_pipeline.config import (
     DatasetConfig,
+    EquivalenceRule,
     FeatureConfig,
     FloatParam,
     IntParam,
@@ -18,7 +19,9 @@ from ml_pipeline.config import (
     NumericFeature,
     PathsConfig,
     PipelineConfig,
+    PromotionConfig,
     SchemaConfig,
+    ServingConfig,
     SplitConfig,
     TrainingConfig,
     load_config,
@@ -56,9 +59,21 @@ def test_fingerprint_is_stable_and_sensitive() -> None:
     )
 
 
-def test_fingerprint_ignores_output_paths() -> None:
-    moved = PipelineConfig(paths=PathsConfig(results_dir=Path("elsewhere")))
-    assert moved.fingerprint() == PipelineConfig().fingerprint()
+def test_fingerprint_ignores_settings_that_cannot_change_a_model() -> None:
+    reference = PipelineConfig().fingerprint()
+    assert PipelineConfig(paths=PathsConfig(results_dir=Path("elsewhere"))).fingerprint() == (
+        reference
+    )
+    assert PipelineConfig(promotion=PromotionConfig(min_pr_auc=0.9)).fingerprint() == reference
+    assert PipelineConfig(serving=ServingConfig(max_batch_size=5)).fingerprint() == reference
+
+
+def test_consistency_rules_must_reference_known_categories() -> None:
+    bad_rule = EquivalenceRule(
+        left="PhoneService", left_value="Maybe", right="MultipleLines", right_value="No"
+    )
+    with pytest.raises(ValidationError, match="unknown categorical value"):
+        SchemaConfig(consistency_rules=(bad_rule,))
 
 
 def test_load_config_from_partial_toml(tmp_path: Path) -> None:

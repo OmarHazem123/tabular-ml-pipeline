@@ -1,0 +1,48 @@
+{
+  "instances": [
+    {
+      "Contract": "Month-to-month",
+      "Dependents": "No",
+      "DeviceProtection": "No",
+      "InternetService": "Fiber optic",
+      "MonthlyCharges": 84.5,
+      "MultipleLines": "No",
+      "OnlineBackup": "No",
+      "OnlineSecurity": "No",
+      "PaperlessBilling": "Yes",
+      "Partner": "Yes",
+      "PaymentMethod": "Electronic check",
+      "PhoneService": "Yes",
+      "SeniorCitizen": 0,
+      "StreamingMovies": "No",
+      "StreamingTV": "Yes",
+      "TechSupport": "No",
+      "TotalCharges": 169.0,
+      "customer_id": "new-fiber",
+      "gender": "Female",
+      "tenure": 2
+    },
+    {
+      "Contract": "Two year",
+      "Dependents": "Yes",
+      "DeviceProtection": "No",
+      "InternetService": "DSL",
+      "MonthlyCharges": 65.0,
+      "MultipleLines": "No",
+      "OnlineBackup": "No",
+      "OnlineSecurity": "Yes",
+      "PaperlessBilling": "No",
+      "Partner": "Yes",
+      "PaymentMethod": "Bank transfer (automatic)",
+      "PhoneService": "Yes",
+      "SeniorCitizen": 0,
+      "StreamingMovies": "No",
+      "StreamingTV": "No",
+      "TechSupport": "Yes",
+      "TotalCharges": 3900.0,
+      "customer_id": "loyal-dsl",
+      "gender": "Female",
+      "tenure": 60
+    }
+  ]
+}

@@ -150,6 +150,54 @@ DEFAULT_FEATURES: tuple[NumericFeature | BinaryFeature | CategoricalFeature, ...
 )
 
 
+class EquivalenceRule(_Frozen):
+    """Cross-field invariant: ``left == left_value`` if and only if ``right == right_value``.
+
+    Enforced identically on training data (``data.py``) and on API requests, so the
+    service rejects combinations the model has never seen and that cannot occur.
+    """
+
+    left: str
+    left_value: str
+    right: str
+    right_value: str
+
+    def describe(self) -> str:
+        return (
+            f"{self.left} == {self.left_value!r} must coincide with "
+            f"{self.right} == {self.right_value!r}"
+        )
+
+
+_INTERNET_ADDON_COLUMNS = (
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+)
+
+# Both families hold on 100% of the 7,043 reference rows.
+DEFAULT_CONSISTENCY_RULES: tuple[EquivalenceRule, ...] = (
+    EquivalenceRule(
+        left="PhoneService",
+        left_value="No",
+        right="MultipleLines",
+        right_value="No phone service",
+    ),
+    *(
+        EquivalenceRule(
+            left="InternetService",
+            left_value="No",
+            right=addon,
+            right_value="No internet service",
+        )
+        for addon in _INTERNET_ADDON_COLUMNS
+    ),
+)
+
+
 class SchemaConfig(_Frozen):
     """Column contract for the raw dataset, in canonical column order."""
 
@@ -158,6 +206,7 @@ class SchemaConfig(_Frozen):
     positive_label: str = "Yes"
     negative_label: str = "No"
     features: Annotated[tuple[FeatureSpec, ...], Field(min_length=1)] = DEFAULT_FEATURES
+    consistency_rules: tuple[EquivalenceRule, ...] = DEFAULT_CONSISTENCY_RULES
     allow_extra_columns: bool = False
 
     @model_validator(mode="after")
@@ -173,6 +222,15 @@ class SchemaConfig(_Frozen):
             raise ValueError("id_column and target_column must differ")
         if self.positive_label == self.negative_label:
             raise ValueError("positive_label and negative_label must differ")
+        categorical = {
+            f.name: f.categories for f in self.features if isinstance(f, CategoricalFeature)
+        }
+        for rule in self.consistency_rules:
+            for column, value in ((rule.left, rule.left_value), (rule.right, rule.right_value)):
+                if value not in categorical.get(column, ()):
+                    raise ValueError(
+                        f"consistency rule references unknown categorical value {column}={value!r}"
+                    )
         return self
 
     @property
@@ -375,8 +433,16 @@ class TrainingConfig(_Frozen):
     cv_folds: Annotated[int, Field(ge=2, le=20)] = 5
     optimize_metric: Literal["average_precision", "roc_auc"] = "average_precision"
     calibration_method: Literal["sigmoid", "isotonic"] = "sigmoid"
-    # F-beta used to pick the decision threshold on the validation split (beta=1 -> F1).
+    # The decision threshold maximises F-beta (beta=1 -> F1) on OUT-OF-FOLD calibrated
+    # validation probabilities, so the chosen threshold is not fit to the same
+    # predictions the calibrator was trained on.
     threshold_beta: Annotated[float, Field(gt=0)] = 1.0
+    calibration_folds: Annotated[int, Field(ge=2, le=20)] = 5
+    # Parallelism across CV folds only. Each fit is single-threaded and seeded, so results
+    # are identical for any value.
+    n_jobs: int = -1
+    # Training rows (transformed) kept inside the artifact as the SHAP background sample.
+    shap_background_size: Annotated[int, Field(ge=10)] = 200
 
     @model_validator(mode="after")
     def _check_models(self) -> Self:
@@ -389,15 +455,38 @@ class TrainingConfig(_Frozen):
 
 
 class PromotionConfig(_Frozen):
-    """Absolute quality gates a candidate must clear on the hold-out test split."""
+    """Quality gates a candidate must clear on the hold-out test split.
 
-    min_roc_auc: UnitInterval = 0.80
-    min_pr_auc: UnitInterval = 0.60
-    min_f1: UnitInterval = 0.55
+    The floors are not free parameters. They are derived from the tuned baseline
+    (logistic regression) BEFORE any test metric is computed, using the rule in
+    ``registry.suggest_promotion_floors``:
+
+    * ROC-AUC / PR-AUC floor = baseline CV mean - 2 x CV std x sqrt(fold rows / test rows)
+      (a 2-sigma lower bound at test-set size; rounded down to 0.01)
+    * F1 floor               = baseline out-of-fold validation F1 - 0.05 (rounded down)
+    * Brier ceiling          = baseline out-of-fold validation Brier + 0.02 (rounded up)
+    """
+
+    # Derived by the rule above from the tuned logistic-regression baseline on the pinned
+    # dataset with seed 42 (CV PR-AUC 0.6675 +/- 0.0354, CV ROC-AUC 0.8530, OOF-val F1
+    # 0.6159), set BEFORE the champion was scored on the test split. `ml-pipeline train`
+    # prints the suggested values next to these for every run.
+    min_roc_auc: UnitInterval = 0.82
+    min_pr_auc: UnitInterval = 0.61
+    min_f1: UnitInterval = 0.56
     max_brier: UnitInterval = 0.17
     primary_metric: Literal["pr_auc", "roc_auc"] = "pr_auc"
-    # Candidate must beat the current production model by at least this margin.
+    # Veto a complex champion that clearly loses to the baseline model on the test split
+    # (tolerance absorbs sampling noise of a ~1.4k-row test set).
+    baseline_tolerance: Annotated[float, Field(ge=0.0)] = 0.01
+    # Candidate must beat the re-scored production model by at least this margin.
     min_improvement_over_production: Annotated[float, Field(ge=0.0)] = 0.0
+
+
+class ServingConfig(_Frozen):
+    max_batch_size: Annotated[int, Field(ge=1)] = 1000
+    default_top_k: Annotated[int, Field(ge=1)] = 3
+    max_top_k: Annotated[int, Field(ge=1)] = 10
 
 
 class PathsConfig(_Frozen):
@@ -405,6 +494,7 @@ class PathsConfig(_Frozen):
 
     raw_data_dir: Path = Path("data/raw")
     artifacts_dir: Path = Path("artifacts")
+    runs_dir: Path = Path("artifacts/runs")
     registry_dir: Path = Path("artifacts/registry")
     results_dir: Path = Path("results")
 
@@ -421,6 +511,7 @@ class PipelineConfig(_Frozen):
     features: FeatureConfig = FeatureConfig()
     training: TrainingConfig = TrainingConfig()
     promotion: PromotionConfig = PromotionConfig()
+    serving: ServingConfig = ServingConfig()
     paths: PathsConfig = PathsConfig()
 
     @model_validator(mode="after")
@@ -442,8 +533,12 @@ class PipelineConfig(_Frozen):
         return self
 
     def fingerprint(self) -> str:
-        """SHA-256 over every setting that can change a trained model (paths excluded)."""
-        payload = self.model_dump(mode="json", exclude={"paths"})
+        """SHA-256 over every setting that can change a trained model.
+
+        Output paths, promotion gates and serving limits are excluded: changing them
+        never changes the fitted artifact, so they must not invalidate its lineage.
+        """
+        payload = self.model_dump(mode="json", exclude={"paths", "promotion", "serving"})
         return sha256_text(canonical_json(payload))
 
 

@@ -405,6 +405,27 @@ def _apply_domain_rules(config: PipelineConfig, state: _Validation) -> None:
     state.rules[TOTAL_CHARGES_RULE] = int(rule_mask.sum())
 
 
+def _check_consistency(config: PipelineConfig, state: _Validation) -> None:
+    """Cross-field equivalences (e.g. no phone service <=> 'No phone service' lines)."""
+    frame = state.frame
+    for rule in config.data_schema.consistency_rules:
+        if rule.left not in frame.columns or rule.right not in frame.columns:
+            continue
+        left, right = frame[rule.left], frame[rule.right]
+        comparable = left.notna() & right.notna()
+        violated = comparable & (left.eq(rule.left_value) != right.eq(rule.right_value))
+        count = int(violated.sum())
+        if count:
+            state.issues.append(
+                _error(
+                    "inconsistent_values",
+                    f"{count} row(s) violate: {rule.describe()}",
+                    rule.right,
+                    count,
+                )
+            )
+
+
 def _check_missing(config: PipelineConfig, state: _Validation, n_rows: int) -> None:
     for spec in config.data_schema.features:
         mask = state.raw_missing.get(spec.name)
@@ -588,6 +609,7 @@ def validate_dataset(
     duplicate_ids = _parse_ids(raw, config, state)
     _parse_features(raw, config, state)
     _apply_domain_rules(config, state)
+    _check_consistency(config, state)
     _check_missing(config, state, len(raw))
     _parse_target(raw, config, state)
     if len(raw) < config.quality.min_rows:

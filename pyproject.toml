@@ -12,7 +12,6 @@ dependencies = [
     "joblib==1.6.0",
     "lightgbm==4.7.0",
     "numpy==2.5.5",
-    "optuna==5.1.0",
     "pandas==3.1.1",
     "pydantic==2.14.4",
     "scikit-learn==1.9.1",
@@ -27,17 +26,25 @@ ml-pipeline = "ml_pipeline.cli:app"
 
 [dependency-groups]
 dev = [
-    "httpx==0.28.1",
+    "httpx2==2.16.2",
     "mypy==2.4.1",
     "pandas-stubs==3.1.0.261029",
     "pytest==9.2.0",
     "pytest-cov==7.1.0",
     "ruff==0.17.6",
 ]
+train = [
+    "optuna==5.1.0",
+]
 
 [build-system]
 requires = ["uv_build==0.11.7"]
 build-backend = "uv_build"
+
+[tool.uv]
+# `train` (Optuna + SQLAlchemy/Alembic) is only needed to fit models. It is installed by
+# default for development but excluded from the serving image (`--no-default-groups`).
+default-groups = ["dev", "train"]
 
 [tool.uv.build-backend]
 module-name = "ml_pipeline"
@@ -80,7 +87,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]           # assert is the point of tests
-"tasks.py" = ["S603", "S607"]   # task runner intentionally shells out to fixed commands
+"tasks.py" = ["S603", "S607", "S310"]  # fixed commands; urlopen only hits http://127.0.0.1
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"

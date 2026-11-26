@@ -1,0 +1,22 @@
+{
+  "Contract": "Month-to-month",
+  "Dependents": "No",
+  "DeviceProtection": "No",
+  "InternetService": "Fiber optic",
+  "MonthlyCharges": 84.5,
+  "MultipleLines": "No",
+  "OnlineBackup": "No",
+  "OnlineSecurity": "No",
+  "PaperlessBilling": "Yes",
+  "Partner": "Yes",
+  "PaymentMethod": "Electronic check",
+  "PhoneService": "Yes",
+  "SeniorCitizen": 0,
+  "StreamingMovies": "No",
+  "StreamingTV": "Yes",
+  "TechSupport": "No",
+  "TotalCharges": 169.0,
+  "customer_id": "7590-VHVEG",
+  "gender": "Female",
+  "tenure": 2
+}

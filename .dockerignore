@@ -1,0 +1,13 @@
+# Whitelist: the image needs the locked project metadata, the package source and the
+# exported production model. Everything else (data, registry, venv, tests, caches,
+# .git, .claude) stays out of the build context.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!src/
+!build/model/
+
+**/__pycache__
+**/*.py[cod]
